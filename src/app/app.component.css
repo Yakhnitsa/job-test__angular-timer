@@ -41,6 +41,16 @@ p {
   margin: 0 16px;
 }
 
+.toolbar #github-logo {
+  height: 40px;
+  margin: 0 16px;
+  opacity: 0.8;
+}
+
+.toolbar #github-logo:hover {
+  opacity: 1;
+}
+
 .content {
   display: flex;
   margin: 82px auto 32px;
