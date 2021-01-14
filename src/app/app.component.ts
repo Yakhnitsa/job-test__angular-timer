@@ -1,17 +1,22 @@
-import { Component,OnInit } from '@angular/core';
-import {interval, SubscriptionLike} from 'rxjs';
+import { Component,OnInit, OnDestroy } from '@angular/core';
+import {interval, Subject, Subscription} from 'rxjs';
+import {debounceTime, buffer, map, filter} from "rxjs/operators";
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'angular-timer';
-  subscription : SubscriptionLike | undefined;
-  interval: number = 100;
   timerValue = 0;
   timerActive = false;
+
+  private timerInterval = 100;
+  private dblClickDuration = 300;
+  private clickSubj$ = new Subject();
+  private stopwatchSubsc : Subscription | undefined;
+  private clickSubsc : Subscription | undefined;
 
   start(){
     this.startAndSubscribe();
@@ -22,40 +27,45 @@ export class AppComponent implements OnInit {
       this.timerActive = true;
     }
   };
-  wait(){
-    this.timerActive = false;
-  };
+
   reset(){
-    this.startAndSubscribe();
     this.timerValue = 0;
     this.timerActive = true;
+    this.startAndSubscribe();
   }
-  private startAndSubscribe(){
-    this.unsubscribe();
-    this.subscription = interval(this.interval)
-      .subscribe( () =>{
-        if(this.timerActive) this.timerValue += this.interval;
-      })
-  }
-  private unsubscribe(){
-    if(this.subscription){
-      this.subscription.unsubscribe();
-      // this.subscription = null;
-    }
 
+  doubleClick() {
+    this.clickSubj$.next();
   }
-  // private resetIntervalAndSubscribe(){
-  //   // this.interval$ = interval()
-  //   // this.interval$.subscribe( val =>{
-  //   //     if(this.timerActive) this.timerValue++;
-  //   //   })
-  // }
-
 
   ngOnInit() {
-    // this.interval$.subscribe(val =>{
-    //   if(this.timerActive) this.timerValue++;
-    // })
+    const doubleClick =
+      this.clickSubj$.pipe(
+        buffer( this.clickSubj$.pipe(debounceTime(this.dblClickDuration)) ),
+        map(list => list.length),
+        filter(x => x === 2)
+      );
+    this.clickSubsc = doubleClick.subscribe(() => this.timerActive = false);
   }
 
+  ngOnDestroy(): void {
+    this.unsubscribe();
+    if(this.clickSubsc){
+      this.clickSubsc.unsubscribe();
+    }
+  }
+
+  private startAndSubscribe(){
+    this.unsubscribe();
+    this.stopwatchSubsc = interval(this.timerInterval)
+      .subscribe( () =>{
+        if(this.timerActive) this.timerValue += this.timerInterval;
+      })
+  }
+
+  private unsubscribe(){
+    if(this.stopwatchSubsc){
+      this.stopwatchSubsc.unsubscribe();
+    }
+  }
 }
